@@ -7,6 +7,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
 const app = express();
+const apiai = require('apiai')('3f51614e3cdf4add8c5f48e7669e02ac');
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -72,15 +73,21 @@ function receivedMessage(event) {
     var messageAttachments = message.attachments;
   
     if (messageText) {
-  
-      switch (messageText) {
-        case 'generic':
-        //   sendGenericMessage(senderID);
-          break;
-  
-        default:
-          sendTextMessage(senderID, messageText);
-      }
+        var request = apiai.textRequest(messageText, {
+          sessionId: senderID
+        });
+
+        request.on('response', function(response) {
+          console.log(response);
+          sendTextMessage(senderID, response.result.fulfillment.speech);
+        });
+
+        request.on('error', function(error) {
+          console.log(error);
+          sendTextMessage(senderID, "Sorry, there was an error in the system");
+        });
+
+        request.end();
     } else if (messageAttachments) {
       sendTextMessage(senderID, "Message with attachment received");
     }
