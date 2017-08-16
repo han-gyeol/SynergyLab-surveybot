@@ -6,28 +6,29 @@ const request = require('request');
 const app = express();
 const config = require('./config.js');
 
-app.set('port', (process.env.PORT || config.port))
+app.set('port', (process.env.PORT || config.port));
 
 // Process application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({extended: false}))
+app.use(bodyParser.urlencoded({extended: false}));
 
 // Process application/json
-app.use(bodyParser.json())
+app.use(bodyParser.json());
 
 // Index route
 app.get('/', function (req, res) {
-	res.send('Hello world, I am a chat bot')
-})
+    console.log('request received');
+	res.send('Hello world, I am a chat bot');
+});
 
 // for Facebook verification
 app.get('/webhook/', function (req, res) {
 	if (req.query['hub.verify_token'] === config.verify_token) {
-		res.send(req.query['hub.challenge'])
+		res.send(req.query['hub.challenge']);
 	}
-	res.send('Error, wrong token')
+	res.send('Error, wrong token');
 })
 
 // Spin up the server
 app.listen(app.get('port'), function() {
-	console.log('running on port', app.get('port'))
+	console.log('running on port', app.get('port'));
 })
