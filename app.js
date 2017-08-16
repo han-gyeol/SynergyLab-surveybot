@@ -3,11 +3,14 @@
 const token = process.env.FB_PAGE_ACCESS_TOKEN;
 const vtoken = process.env.FB_VERIFY_ACCESS_TOKEN;
 
+// const config = require('./config.js');
+// const token = config.FB_PAGE_ACCESS_TOKEN;
+// const vtoken = config.FB_VERIFY_ACCESS_TOKEN;
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
 const app = express();
-const config = require('./config.js');
 
 app.set('port', (process.env.PORT || 5000));
 
