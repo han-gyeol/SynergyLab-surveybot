@@ -2,12 +2,13 @@
 
 const token = process.env.FB_PAGE_ACCESS_TOKEN;
 const vtoken = process.env.FB_VERIFY_ACCESS_TOKEN;
+const apiai_token = process.env.APIAI_CLIENT_ACCESS_TOKEN;
 
 const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
 const app = express();
-const apiai = require('apiai')('3f51614e3cdf4add8c5f48e7669e02ac');
+const apiai = require('apiai')(apiai_token);
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -78,7 +79,6 @@ function receivedMessage(event) {
         });
 
         request.on('response', function(response) {
-          console.log(response);
           sendTextMessage(senderID, response.result.fulfillment.speech);
         });
 
