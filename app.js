@@ -35,6 +35,9 @@ app.get('/webhook/', function (req, res) {
 
 app.post('/webhook/', function (req, res) {
     var data = req.body;
+
+    console.log('data: ');
+    console.log(data);
   
     // Make sure this is a page subscription
     if (data.object === 'page') {
@@ -43,6 +46,9 @@ app.post('/webhook/', function (req, res) {
       data.entry.forEach(function(entry) {
         var pageID = entry.id;
         var timeOfEvent = entry.time;
+
+        console.log('entry: ');
+        console.log(entry);
   
         // Iterate over each messaging event
         entry.messaging.forEach(function(event) {
