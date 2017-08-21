@@ -3,7 +3,7 @@ var builder = require('botbuilder');
 
 // Setup Restify Server
 var server = restify.createServer();
-    server.listen(process.env.port || process.env.PORT || 3978, function () {
+server.listen(process.env.port || process.env.PORT || 3978, function () {
     console.log('%s listening to %s', server.name, server.url); 
 });
 
@@ -11,6 +11,14 @@ var server = restify.createServer();
 var connector = new builder.ChatConnector({
     appId: process.env.MICROSOFT_APP_ID,
     appPassword: process.env.MICROSOFT_APP_PASSWORD
+});
+
+// Listen for facebook webhook
+server.post('/webhook', function(req, res) {
+    if (req.query['hub.verify_token'] === process.env.FB_VERIFY_ACCESS_TOKEN) {
+    	res.send(req.query['hub.challenge'])
+    }
+    res.send('Error, wrong token')
 });
 
 // Listen for messages from users 
