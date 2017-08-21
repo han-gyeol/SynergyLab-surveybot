@@ -27,6 +27,9 @@ server.get('/webhook', function(req, res) {
 });
 
 // Listen for messages from users 
+server.post('/webhook', connector.listen());
+
+// Listen for messages from users 
 server.post('/api/messages', connector.listen());
 
 
