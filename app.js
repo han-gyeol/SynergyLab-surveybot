@@ -14,7 +14,12 @@ var connector = new builder.ChatConnector({
 });
 
 // Listen for facebook webhook
-server.post('/webhook', function(req, res) {
+server.get('/', function(req, res) {
+    res.send('Hello world, I am a chat bot');
+});
+
+// Listen for facebook webhook
+server.get('/webhook', function(req, res) {
     if (req.query['hub.verify_token'] === process.env.FB_VERIFY_ACCESS_TOKEN) {
     	res.send(req.query['hub.challenge'])
     }
