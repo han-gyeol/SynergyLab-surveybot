@@ -1,141 +1,185 @@
-'use strict'
+var restify = require('restify');
+var builder = require('botbuilder');
 
-const token = process.env.FB_PAGE_ACCESS_TOKEN;
-const vtoken = process.env.FB_VERIFY_ACCESS_TOKEN;
-const apiai_token = process.env.APIAI_CLIENT_ACCESS_TOKEN;
-
-const express = require('express');
-const bodyParser = require('body-parser');
-const request = require('request');
-const app = express();
-const apiai = require('apiai')(apiai_token);
-
-app.set('port', (process.env.PORT || 5000));
-
-// Process application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({extended: false}));
-
-// Process application/json
-app.use(bodyParser.json());
-
-// Index route
-app.get('/', function (req, res) {
-    console.log('request received');
-	res.send('Hello world, I am a chat bot');
+// Setup Restify Server
+var server = restify.createServer();
+    server.listen(process.env.port || process.env.PORT || 3978, function () {
+    console.log('%s listening to %s', server.name, server.url); 
 });
 
-// for Facebook verification
-app.get('/webhook/', function (req, res) {
-    console.log(vtoken);
-	if (req.query['hub.verify_token'] === vtoken) {
-		res.send(req.query['hub.challenge']);
-	}
-	res.send('Error, wrong token');
+// Create chat connector for communicating with the Bot Framework Service
+var connector = new builder.ChatConnector({
+    appId: process.env.MICROSOFT_APP_ID,
+    appPassword: process.env.MICROSOFT_APP_PASSWORD
 });
 
-app.post('/webhook/', function (req, res) {
-    var data = req.body;
+// Listen for messages from users 
+server.post('/api/messages', connector.listen());
 
-    console.log('data: ');
-    console.log(data);
-  
-    // Make sure this is a page subscription
-    if (data.object === 'page') {
-  
-      // Iterate over each entry - there may be multiple if batched
-      data.entry.forEach(function(entry) {
-        var pageID = entry.id;
-        var timeOfEvent = entry.time;
 
-        console.log('entry: ');
-        console.log(entry);
-  
-        // Iterate over each messaging event
-        entry.messaging.forEach(function(event) {
-          if (event.message) {
-            receivedMessage(event);
-          } else {
-            console.log("Webhook received unknown event: ", event);
-          }
-        });
-      });
+var bot = new builder.UniversalBot(connector, [
+    function (session) {
+        session.send("Hello friend! Thank you for participating our study!");
+        session.beginDialog('askForWakeSleepTime');
+    },
+    function (session, results) {
+        session.userData.profile = results.response;
 
-      res.sendStatus(200);
+        session.send(`Great! I will poke you to ask you questions sometime in between %s and %s :)
+        Let's get to the trial questions!`, session.userData.profile.wakeUpTime, session.userData.profile.sleepTime);
+        session.beginDialog('askQuestions');
+    },
+    function (session, results) {
+        session.dialogData.answers = results.response;
+
+        if (session.dialogData.answers.q4 === 'null') {
+            session.send("Thank you for your response! Your responses were (%s), (%s), (%s)",
+                session.dialogData.answers.q1, session.dialogData.answers.q2, session.dialogData.answers.q3);
+        }
+        else {
+            session.send("Thank you for your response! Your responses were (%s), (%s), (%s), (%s), (%s), (%s)",
+            session.dialogData.answers.q1, session.dialogData.answers.q2, session.dialogData.answers.q3,
+            session.dialogData.answers.q4, session.dialogData.answers.q5, session.dialogData.answers.q6);
+        }
+        session.endDialog();
     }
-});
-    
-function receivedMessage(event) {
-    var senderID = event.sender.id;
-    var recipientID = event.recipient.id;
-    var timeOfMessage = event.timestamp;
-    var message = event.message;
-  
-    console.log("Received message for user %d and page %d at %d with message:", 
-      senderID, recipientID, timeOfMessage);
-    console.log(JSON.stringify(message));
-  
-    var messageId = message.mid;
-  
-    var messageText = message.text;
-    var messageAttachments = message.attachments;
-  
-    if (messageText) {
-        var request = apiai.textRequest(messageText, {
-          sessionId: senderID
-        });
+]);
 
-        request.on('response', function(response) {
-          sendTextMessage(senderID, response.result.fulfillment.speech);
-        });
-
-        request.on('error', function(error) {
-          console.log(error);
-          sendTextMessage(senderID, "Sorry, there was an error in the system");
-        });
-
-        request.end();
-    } else if (messageAttachments) {
-      sendTextMessage(senderID, "Message with attachment received");
+bot.dialog('askForWakeSleepTime', [
+    function (session) {
+        session.dialogData.profile = {};
+        builder.Prompts.text(session, "Would you tell me what time you usually wake up? (e.g.: 07:00)");
+    },
+    function (session, results) {
+        session.dialogData.profile.wakeUpTime = results.response;
+        builder.Prompts.text(session, "Would you tell me what time you usually go to sleep? (e.g.: 23:00)");
+    },
+    function (session, results) {
+        session.dialogData.profile.sleepTime = results.response;
+        session.endDialogWithResult({ response: session.dialogData.profile });
     }
-}
+]);
 
-function sendTextMessage(recipientId, messageText) {
-    var messageData = {
-      recipient: {
-        id: recipientId
-      },
-      message: {
-        text: messageText
-      }
-    };
-  
-    callSendAPI(messageData);
-}
+bot.dialog('askQuestions', [
+    // Question 1
+    function (session) {
+        session.dialogData.answers = {};
+        builder.Prompts.choice(session,
+`Right now, I feel happy:\n
+a.  1 = Not at all\n
+b.  2\n
+c.  3 = Neutral\n
+d.  4\n
+e.  5 = Very much so\n`,
+             ["a","b","c","d","e"],
+             { listStyle: 3 }
+        );
+    },
 
-function callSendAPI(messageData) {
-    request({
-      uri: 'https://graph.facebook.com/v2.6/me/messages',
-      qs: { access_token: token },
-      method: 'POST',
-      json: messageData
-  
-    }, function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-        var recipientId = body.recipient_id;
-        var messageId = body.message_id;
-  
-        console.log("Successfully sent generic message with id %s to recipient %s", 
-          messageId, recipientId);
-      } else {
-        console.error("Unable to send message.");
-        console.error(response);
-        console.error(error);
-      }
-    });  
-}
+    // Question 2
+    function (session, results) {
+        session.dialogData.answers.q1 = results.response.entity;
+        session.send("Your response of (%s) has been saved.", results.response.entity);
+        builder.Prompts.choice(session,
+`Right now, I feel good about myself.\n
+a.  1 = Strongly disagree\n
+b.  2\n
+c.  3\n
+d.  4 = Neither disagree nor agree\n
+e.  5\n
+f.  6\n
+g.  7 = Strongly agree\n`,
+             ["a","b","c","d","e","f","g"],
+             { listStyle: 3 }
+        );
+    },
 
+    // Question 3
+    function (session, results) {
+        session.dialogData.answers.q2 = results.response.entity;
+        session.send("Your response of (%s) has been saved.", results.response.entity);
+        builder.Prompts.text(session,
+`In the past 20 minutes, I was with:\n
+a.  My boyfriend / girlfriend / partner / spouse\n
+b.  Friends / colleagues / schoolmates\n
+c.  Family\n
+d.  Alone\n
+e.  Others (please specify. E.g. e(my professor))\n
+*select all that apply. E.g. a,b,d OR b,e(my professor)\n
+*if you were alone, please type 'f' or 'alone'`
+        );
+    },
 
-// Spin up the server
-app.listen(app.get('port'), function() {
-	console.log('running on port', app.get('port'));
-})
+    // Question 4
+    function (session, results, next) {
+        session.dialogData.answers.q3 = results.response;
+        session.send("Your response of (%s) has been saved.", results.response);
+        
+        if (session.dialogData.answers.q3 === 'f' || session.dialogData.answers.q3 === 'alone') {
+            next();
+        }
+        else {
+            builder.Prompts.choice(session,
+`In the past 20 minutes, the person/people I was with made me feel:\n
+a.  1 = Completely excluded\n
+b.  2\n
+c.  3 = Neutral\n
+d.  4\n
+e.  5 = Completely included\n`,
+                 ["a","b","c","d","e"],
+                 { listStyle: 3 }
+            );
+        }
+    },
+
+    // Question 5
+    function (session, results, next) {
+        if (session.dialogData.answers.q3 === 'f' || session.dialogData.answers.q3 === 'alone') {
+            session.dialogData.answers.q4 = 'null';
+            next();
+        }
+        else {
+            session.dialogData.answers.q4 = results.response.entity;
+            session.send("Your response of (%s) has been saved.", session.dialogData.answers.q4);
+            builder.Prompts.choice(session,
+`In the past 20 minutes, the person/people I was with:\n
+a.  Used their mobile phone\n
+b.  Did not use their mobile phone\n`,
+                 ["a","b"],
+                 { listStyle: 3 }
+            );
+        }
+    },
+
+    // Question 6
+    function (session, results, next) {
+        if (session.dialogData.answers.q3 === 'f' || session.dialogData.answers.q3 ===  'alone') {
+            session.dialogData.answers.q5 = 'null';
+            next();
+        }
+        else {
+            session.dialogData.answers.q5 = results.response.entity;
+            session.send("Your response of (%s) has been saved.", session.dialogData.answers.q5);
+            builder.Prompts.choice(session,
+`In the past 20 minutes, I:\n
+a.  1 = Not at all\n
+b.  2\n
+c.  3 = Neutral\n
+d.  4\n
+e.  5 = Very much so\n`,
+                ["a","b","c","d","e"],
+                { listStyle: 3 }
+            );
+        }
+    },
+    function (session, results) {
+        if (session.dialogData.answers.q3 === 'f' || session.dialogData.answers.q3 ===  'alone') {
+            session.dialogData.answers.q6 = 'null';
+        }
+        else {
+            session.dialogData.answers.q6 = results.response.entity;
+            session.send("Your response of (%s) has been saved.", session.dialogData.answers.q6);
+        }
+        session.endDialogWithResult({ response: session.dialogData.answers });
+    }
+]);
