@@ -13,21 +13,21 @@ var connector = new builder.ChatConnector({
     appPassword: process.env.MICROSOFT_APP_PASSWORD
 });
 
-// Listen for facebook webhook
-server.get('/', function(req, res) {
-    res.send('Hello world, I am a chat bot');
-});
+// // Listen for facebook webhook
+// server.get('/', function(req, res) {
+//     res.send('Hello world, I am a chat bot');
+// });
 
-// Listen for facebook webhook
-server.get('/webhook', function(req, res) {
-    if (req.query['hub.verify_token'] === process.env.FB_VERIFY_ACCESS_TOKEN) {
-    	res.send(req.query['hub.challenge'])
-    }
-    res.send('Error, wrong token')
-});
+// // Listen for facebook webhook
+// server.get('/webhook', function(req, res) {
+//     if (req.query['hub.verify_token'] === process.env.FB_VERIFY_ACCESS_TOKEN) {
+//     	res.send(req.query['hub.challenge'])
+//     }
+//     res.send('Error, wrong token')
+// });
 
-// Listen for messages from users 
-server.post('/webhook', connector.listen());
+// // Listen for messages from users 
+// server.post('/webhook', connector.listen());
 
 // Listen for messages from users 
 server.post('/api/messages', connector.listen());
