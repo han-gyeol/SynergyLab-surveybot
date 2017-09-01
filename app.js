@@ -23,6 +23,7 @@ server.get('/webhook', function(req, res) {
 
 // Listen for messages from users 
 server.post('/webhook', function(req, res) {
+        console.log("Received message");
         res.send('HELLO!');
 });
 
