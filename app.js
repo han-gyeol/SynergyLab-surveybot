@@ -29,6 +29,8 @@ server.get('/', function(req, res) {
 
 // Listen for facebook webhook
 server.get('/api/messages', function(req, res) {
+    console.log("Received token: " + req.query['hub.verify_token']);
+    console.log("Saved token: " + process.env.FB_VERIFY_ACCESS_TOKEN);
     if (req.query['hub.verify_token'] === process.env.FB_VERIFY_ACCESS_TOKEN) {
     	res.send(req.query['hub.challenge'])
     }
