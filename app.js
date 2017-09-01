@@ -1,5 +1,6 @@
 var restify = require('restify');
 var startbot = require('./chatbot');
+var clock = require('./clock.js');
 
 // Setup Restify Server
 var server = restify.createServer();
@@ -26,14 +27,3 @@ server.post('/webhook', function(req, res) {
 });
 
 startbot(server);
-
-var pg = require('pg');
-
-pg.defaults.ssl = true;
-var connectionString = process.env.DATABASE_URL;
-
-var client = new pg.Client(connectionString);
-client.connect(function(err) {
-    if(err) throw err;
-    console.log("Database connected");
-});

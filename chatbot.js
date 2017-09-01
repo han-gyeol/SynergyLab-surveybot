@@ -1,4 +1,6 @@
 var builder = require('botbuilder');
+var fs = require('fs');
+var moment = require('moment');
 
 module.exports = startBot;
 
@@ -17,9 +19,34 @@ function startBot(server) {
         },
         function (session, results) {
             session.userData.profile = results.response;
+            var wakeUpTime = moment(session.userData.profile.wakeUpTime, "h:mm A").format("HH:mm");
+            var sleepTime = moment(session.userData.profile.sleepTime, "h:mm A").format("HH:mm");
 
             session.send(`Great! I will poke you to ask you questions sometime in between %s and %s :)
-            Let's get to the trial questions!`, session.userData.profile.wakeUpTime, session.userData.profile.sleepTime);
+            Let's get to the trial questions!`, wakeUpTime, sleepTime);
+
+
+
+            participant = {
+                "id": 'temp_id',
+                "name": 'temp_id',
+                "wake": wakeUpTime,
+                "sleep": sleepTime
+            };
+            fs.readFile('./data/participants.JSON', function (err, data) {
+                var json = JSON.parse(data)
+                json.push(participant);
+            
+                fs.writeFile('./data/participants.JSON', JSON.stringify(json, null, 4));
+            });
+            var path = `./data/responses/${participant.id}.JSON`;
+            fs.open(path, 'w+', function(error) {
+                if (error) console.log(error);
+                else {
+                    fs.writeFile(path, '[]');
+                }
+            });
+
             session.beginDialog('askQuestions');
         },
         function (session, results) {
@@ -34,6 +61,16 @@ function startBot(server) {
                 session.dialogData.answers.q1, session.dialogData.answers.q2, session.dialogData.answers.q3,
                 session.dialogData.answers.q4, session.dialogData.answers.q5, session.dialogData.answers.q6);
             }
+
+            // fs.readFile(`./data/responses/${session.id}.JSON`, function (err, data) {
+            fs.readFile(`./data/responses/temp_id.JSON`, function (err, data) {
+                var json = JSON.parse(data)
+                json.push(results.response);
+            
+                // fs.writeFile(`./data/responses/${session.id}.JSON`, JSON.stringify(json, null, 4));
+                fs.writeFile(`./data/responses/temp_id.JSON`, JSON.stringify(json, null, 4));
+            });
+
             session.endDialog();
         }
     ]);
