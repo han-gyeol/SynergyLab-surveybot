@@ -32,9 +32,10 @@ server.get('/api/messages', function(req, res) {
     console.log("Received token: " + req.query['hub.verify_token']);
     console.log("Saved token: " + process.env.FB_VERIFY_ACCESS_TOKEN);
     // if (req.query['hub.verify_token'] === process.env.FB_VERIFY_ACCESS_TOKEN) {
+        console.log("challenge: " + req.query['hub.challenge']);
     	res.send(req.query['hub.challenge'])
     // }
-    res.send('Error, wrong token')
+    // res.send('Error, wrong token')
 });
 
 startbot(server);
