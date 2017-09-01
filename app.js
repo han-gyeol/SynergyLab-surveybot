@@ -13,18 +13,26 @@ server.get('/', function(req, res) {
     res.send('Hello world, I am a chat bot');
 });
 
+// // Listen for facebook webhook
+// server.get('/webhook', function(req, res) {
+//     if (req.query['hub.verify_token'] === process.env.FB_VERIFY_ACCESS_TOKEN) {
+//     	res.send(req.query['hub.challenge'])
+//     }
+//     res.send('Error, wrong token')
+// });
+
+// // Listen for messages from users 
+// server.post('/webhook', function(req, res) {
+//         console.log("Received message");
+//         res.send('HELLO!');
+// });
+
 // Listen for facebook webhook
-server.get('/webhook', function(req, res) {
+server.get('/api/messages', function(req, res) {
     if (req.query['hub.verify_token'] === process.env.FB_VERIFY_ACCESS_TOKEN) {
     	res.send(req.query['hub.challenge'])
     }
     res.send('Error, wrong token')
-});
-
-// Listen for messages from users 
-server.post('/webhook', function(req, res) {
-        console.log("Received message");
-        res.send('HELLO!');
 });
 
 startbot(server);
